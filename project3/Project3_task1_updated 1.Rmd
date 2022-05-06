@@ -1,0 +1,111 @@
+---
+title: "Project3"
+author: "Rohini kolli"
+date: '2022-05-03'
+output: pdf_document
+---
+
+------Task1-----
+#Loading required libraries
+library(readr)
+library(stringr)
+library(forcats)
+library(dplyr)
+library(tidytext)
+library(janeaustenr)
+library(ggplot2)
+library(tidyr)
+library(igraph)
+library(ggraph)
+library(magrittr)
+library(readxl)
+library(igraph)
+library(data.table)
+library(wordcloud)
+library(RColorBrewer)
+library(wordcloud2)
+library(stringi)
+
+#Importing and preprocessing data
+keyword_data<- read.csv("C:/Users/Rohini chowdary/Downloads/Keyword_data.csv")
+keywords = subset(keyword_data, select = -c(Title))
+keywords <- data.frame(lapply(keywords, str_to_title))
+#1. Creating adjacency matrix
+variable <- c()
+variable <- as.character(unique(unlist(keywords)))
+
+variable1 <- tolower(stri_remove_empty(variable, na_empty = FALSE))
+adj_matrix <- matrix(0,nrow = length(variable1),ncol=length(variable1))
+rownames(adj_matrix) <- c(variable1)
+colnames(adj_matrix) <- c(variable1)
+
+
+
+n_rows <- dim(keywords)[1]
+n_cols <- dim(keywords)[2]
+# Create a weighted adjacency matrix
+keywords1 <- keyword_data[!is.na(keyword_data$`Keyword.1`),]
+number <- length(keywords1)
+
+for(x in 1:n_rows){
+  for(y in 1:n_cols) {
+    for(z in 1:n_cols) {
+      key1 <- tolower(keywords[[x, y]])
+      key2 <- tolower(keywords[[x, z]])
+      if((key1 !="")&&(key2 != "") && (key1 != key2)) {
+        adj_matrix[key1,key2] <- adj_matrix[key1,key2] + 1
+      }
+    }
+  }
+}
+
+# 2. Creating a network from the adjaceny matrix
+network_graph<-graph_from_adjacency_matrix(adj_matrix,mode="undirected", weighted = TRUE)
+
+plot(network_graph,edge.label=E(network_graph)$weight, 
+     vertex.frame.color="red",vertex.label.color="black",
+     vertex.size=2,edge.label.color="black")
+     
+# 3. Degree of network
+Degree <- degree(network_graph, mode="all")
+Degree <- data.frame(degree_network)
+Degree
+
+# 3. Strength of network
+strength <- strength(network_graph, mode="all")
+strength <- data.frame(strength)
+strength
+
+#4 top 10 nodes by degree and strength
+Top_degree <- degree_network %>% arrange(desc(degree_network)) %>% slice(1:10)
+Top_degree
+
+Top_strength <- strength  %>% arrange(desc(strength)) %>% slice(1:10)
+Top_strength
+
+# 5.top 10 pairs by weight
+data.frame(Top_10_node_by_Strength = Top_strength, Top_10_node_by_Degree = Top_degree)
+
+Top_10_pairs_weight <- data.frame()
+for (i in 1:248)
+  for (j in 1:248)
+    if ((i != j) && (i > j)) {
+      Top_10_pairs_weight <- rbind(Top_10_pairs_weight, data.frame(N1 = row.names(adj_matrix)[i], N2 = row.names(adj_matrix)[j], Count = adj_matrix[i,j]))
+    }
+
+Top_10_pairs_weight %>% 
+  arrange(desc(Count)) %>% 
+  head(10)
+#6 degree vs average strength
+gen_table<- merge(degree_network,strength, by=0, all=TRUE)
+Avg_Strength <- gen_table %>% 
+  group_by(degree_network) %>% 
+  summarise(Avg_Strength = mean(strength))
+plot <- ggplot(Avg_Strength, aes(x=degree_network, y=Avg_Strength)) + geom_point(color='Steelblue')
+plot
+
+
+
+
+
+  
